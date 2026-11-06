@@ -129,6 +129,47 @@ mvn spring-boot:run -pl audit-consumer
 
 ---
 
+## 🛑 Shutting Down & Cleanup
+
+### 1. Stopping Docker Stack
+Depending on what you want to keep:
+
+```bash
+# Option A: Pause containers (keeps data and container state)
+docker compose stop
+
+# Option B: Stop and remove containers & network (preserves database data)
+docker compose down
+
+# Option C: Complete cleanup (removes containers, networks, AND database volumes)
+docker compose down -v
+```
+
+### 2. Stopping Local Java / Maven Applications
+- **In active terminal**: Press `Ctrl + C` in each terminal window.
+- **If background processes linger on ports 8080 / 8081**:
+  - **Windows (PowerShell)**:
+    ```powershell
+    Get-NetTCPConnection -LocalPort 8080, 8081 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
+    ```
+  - **Linux / macOS**:
+    ```bash
+    kill -9 $(lsof -t -i:8080 -i:8081)
+    ```
+
+### 3. Check Port Availability
+To verify that all project ports are free:
+- **Windows (PowerShell)**:
+  ```powershell
+  Get-NetTCPConnection -LocalPort 8080, 8081, 5432, 61616, 8161 -ErrorAction SilentlyContinue
+  ```
+- **Linux / macOS**:
+  ```bash
+  lsof -i :8080,8081,5432,61616,8161
+  ```
+
+---
+
 ## 🌐 Endpoints & Documentation
 
 - **Core API Swagger UI**: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
