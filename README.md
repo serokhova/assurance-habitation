@@ -76,6 +76,16 @@ To stop everything:
 docker compose down
 ```
 
+> [!IMPORTANT]
+> **Database Initialization & Volume Reset**:
+> The scripts in `./postgres/init/` (`10-permissions.sh`, `20-schema.sql`, `30-data.sql`) are executed **automatically by PostgreSQL only on the very first container startup when the volume is empty**.
+> If you (or a teammate) previously ran an older commit where the database volume was created before the schema scripts were added, PostgreSQL skips initialization.
+> To wipe the old volume and trigger a 100% fresh automated initialization and seeding:
+> ```bash
+> docker compose down -v
+> docker compose up --build -d
+> ```
+
 ---
 
 ### Option 2: 💻 Local Developer Mode (IntelliJ / Terminal)
