@@ -1,74 +1,103 @@
-# Projet Assurance-Habitation
+# Home Insurance System (Assurance Habitation)
 
-# Environnement Docker local
+A modern, multi-module Spring Boot application for Home Insurance management, featuring asynchronous event-driven messaging with Apache ActiveMQ Artemis and PostgreSQL multi-schema persistence.
 
-Ce Compose lance PostgreSQL et Apache Artemis sur votre ordinateur. Les ports sont publiés uniquement sur `127.0.0.1` et les données restent dans des volumes Docker locaux. Les identifiants fournis sont publics et réservés à cet environnement : ne les utilisez pas sur le VPS ni pour des données réelles.
+---
 
-## Prérequis
+## 🏛️ Architecture Overview
 
-- Installez Docker Desktop depuis la documentation officielle correspondant à votre système : [Windows](https://docs.docker.com/desktop/setup/install/windows-install/), [macOS](https://docs.docker.com/desktop/setup/install/mac-install/) ou [Linux](https://docs.docker.com/desktop/setup/install/linux/). Sous Linux, vous pouvez aussi installer Docker Engine avec le plugin Compose en suivant les instructions pour [votre distribution](https://docs.docker.com/engine/install/).
-- Démarrez Docker Desktop, ou vérifiez que le service Docker Engine fonctionne.
-- Une application Java/Spring lancée sur votre ordinateur, ou dans un conteneur Docker, est nécessaire pour utiliser la base et le broker. Vous pouvez toutefois démarrer les services seuls pour explorer la console Artemis.
+The project is structured as a decoupled two-service microservice system:
 
-Après l'installation, ouvrez un terminal (PowerShell sous Windows, Terminal sous macOS/Linux) et vérifiez que Docker et Compose répondent :
+```mermaid
+flowchart LR
+    subgraph App1["1. assurance-api (Port 8080)"]
+        API[Core Business REST API] --> JPA1[Spring Data JPA]
+        JPA1 --> DB_Assurance[(PostgreSQL : schema 'assurance')]
+        API --> Producer[JmsEventProducer]
+    end
 
-```sh
-docker --version
-docker compose version
-docker run --rm hello-world
+    Producer -->|JMS Queue: user.created.queue| Artemis[(Apache Artemis Broker : 61616)]
+
+    subgraph App2["2. audit-consumer (Port 8081)"]
+        Consumer[JmsEventConsumer @JmsListener] --> JPA2[Spring Data JPA]
+        JPA2 --> DB_Messaging[(PostgreSQL : schema 'messaging')]
+        AuditAPI[Audit REST API /events] --> JPA2
+    end
+
+    Artemis -->|Asynchronous Consumption| Consumer
 ```
 
-Si la commande `docker` renvoie une erreur de permission sous Linux, consultez les [étapes post-installation officielles](https://docs.docker.com/engine/install/linux-postinstall/) ou préfixez temporairement les commandes Docker avec `sudo`.
+### 1. `assurance-api` (Port 8080 — Producer)
+- Core insurance business domain: Policyholders, Accommodations, Coverages, Contracts, Claims.
+- Connects exclusively to the PostgreSQL **`assurance`** schema.
+- Emits business domain events (`USER_CREATED`, `CONTRACT_CREATED`, `CLAIM_CREATED`) to Apache Artemis queues.
+- Interactive Swagger UI: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
 
-## Démarrer les services
+### 2. `audit-consumer` (Port 8081 — Consumer)
+- Independent audit logging and event consumption service.
+- Connects exclusively to the PostgreSQL **`messaging`** schema.
+- Listens to Artemis queues via `@JmsListener` and stores immutable audit logs with dual timestamps (event emission time vs. consumer receipt time).
+- Exposes audit trail endpoints (`GET /events`, `GET /events/{id}`).
+- Interactive Swagger UI: [http://localhost:8081/swagger-ui.html](http://localhost:8081/swagger-ui.html)
 
-Depuis ce dossier, lancez :
+---
 
-```sh
+## 🎯 Design Patterns Implemented
+
+| Design Pattern | Implementation Location | Purpose & Justification |
+|---|---|---|
+| **Event Message** | `com.example.assurancehabitation.messaging.EventMessage` | Structures domain events into standardized `{ eventType, payload, eventTime }` wrappers. |
+| **Message Translator** | `com.example.assurancehabitation.messaging.producer.JmsEventProducer` | Converts rich domain entities and DTOs into JSON message payloads sent across JMS channels. |
+| **Event-driven Consumer** | `com.example.auditconsumer.messaging.JmsEventConsumer` | Autonomous `@JmsListener` endpoints that react to incoming messages without polling. |
+| **Embedded Value** | `com.example.assurancehabitation.entity.assurance.Address` | Groups cohesive address fields (`street`, `city`, `country`, `postalCode`) into an `@Embeddable` value object. |
+| **Lazy Load** | All entities in `entity.assurance.*` | Leverages `FetchType.LAZY` across `@OneToMany`, `@ManyToOne`, and `@ManyToMany` relations to optimize queries and avoid N+1 bottlenecks. |
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Java 25
+- Docker & Docker Compose
+- Maven (or use `./mvnw`)
+
+### 1. Start Infrastructure (PostgreSQL & Artemis)
+```bash
 docker compose up -d
-docker compose ps
 ```
 
-Vous pouvez créer plusieurs schémas dans la base locale `projet`.
+> [!NOTE]
+> Database schemas (`assurance`, `messaging`) and initial seed data (standard coverages, sample policyholders, sample contracts) are automatically loaded via scripts in `./postgres/init/`.
 
-| Service | Hôte | Port | Identifiant | Mot de passe |
-| --- | --- | ---: | --- | --- |
-| PostgreSQL | `localhost` | `5432` | `atelier` | `atelier-local-uniquement` |
-| Artemis Core/JMS | `localhost` | `61616` | `atelier` | `atelier-local-uniquement` |
-| Console Artemis | <http://localhost:8161> | `8161` | `atelier` | `atelier-local-uniquement` |
-
-Dans une application Spring lancée directement sur votre ordinateur, vous pouvez utiliser ces propriétés :
-
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/projet
-spring.datasource.username=atelier
-spring.datasource.password=atelier-local-uniquement
-spring.artemis.mode=native
-spring.artemis.broker-url=tcp://localhost:61616
-spring.artemis.user=atelier
-spring.artemis.password=atelier-local-uniquement
+### 2. Run Automated Tests
+```bash
+mvn test
 ```
 
-Si votre application Spring tourne elle-même dans Docker Compose, `localhost` désigne son propre conteneur. Ajoutez alors le service Spring à ce Compose et utilisez `postgres:5432` et `artemis:61616` comme hôtes.
+#### 🧪 Test Coverage Across Architectural Layers (42 Tests)
 
-## Arrêter et réinitialiser
+| Architectural Layer | `assurance-api` (Port 8080) | `audit-consumer` (Port 8081) | Focus & Assertions |
+|---|---|---|---|
+| **Controller Layer** | `UserControllerTest`, `ContractControllerTest`, `ClaimControllerTest` | `EventControllerTest` | `@WebMvcTest` MockMvc slice tests verifying HTTP statuses (200, 201, 204, 400, 404), Bean Validation constraints, and `@ExceptionHandler` responses. |
+| **Service Layer** | `UserServiceTest`, `ContractServiceTest`, `ClaimServiceTest` | `EventServiceTest` | `@SpringBootTest` & Mockito unit tests verifying business logic, transactions, exception propagation, and JMS event dispatching. |
+| **Repository Layer** | `AccommodationRepositoryTest`, `ContractRepositoryTest`, `ClaimRepositoryTest` | `EventRepositoryTest` | `@DataJpaTest` in-memory H2 tests verifying table mappings, `@Embedded` `Address`, enums, relationship navigation, and custom query methods. |
+| **Messaging Layer** | `JmsEventProducerTest` | `JmsEventConsumerTest` | Unit tests verifying `EventMessage` envelope serialization, JMS listener routing, payload parsing, and error resilience. |
 
-Arrêtez les conteneurs sans effacer les données :
+### 3. Launch the Applications
+Open two terminals:
 
-```sh
-docker compose down
+```bash
+# Terminal 1: Start Main Business API (Port 8080)
+mvn spring-boot:run -pl assurance-api
+
+# Terminal 2: Start Audit Consumer Service (Port 8081)
+mvn spring-boot:run -pl audit-consumer
 ```
 
-Pour effacer également la base et les messages stockés, supprimez les volumes :
+---
 
-```sh
-docker compose down -v
-```
+## 🌐 Endpoints & Documentation
 
-Cette suppression est irréversible.
-
-## Personnaliser
-
-Copiez `.env.example` vers `.env` pour changer les ports ou identifiants. Les scripts de `postgres/init` ne sont exécutés qu'à la création d'un volume PostgreSQL vide. Si vous modifiez les paramètres après le premier démarrage, appliquez les changements dans PostgreSQL ou supprimez le volume local avec `docker compose down -v`.
-
-Les versions des images sont épinglées dans le Compose. Une mise à niveau majeure de PostgreSQL demande une migration des données, pas seulement un changement de tag.
+- **Core API Swagger UI**: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
+- **Audit Consumer Swagger UI**: [http://localhost:8081/swagger-ui.html](http://localhost:8081/swagger-ui.html)
+- **Apache Artemis Console**: [http://localhost:8161](http://localhost:8161) (`atelier` / `atelier-local-uniquement`)
