@@ -30,6 +30,53 @@ services:
       - "127.0.0.1:${ARTEMIS_CONSOLE_PORT:-8161}:8161"
     volumes:
       - artemis_data:/var/lib/artemis-instance
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 61616 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  assurance-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: assurance-api
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-projet}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-atelier}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-atelier-local-uniquement}
+      SPRING_ARTEMIS_BROKER_URL: tcp://artemis:61616
+      SPRING_ARTEMIS_USER: ${ARTEMIS_USER:-atelier}
+      SPRING_ARTEMIS_PASSWORD: ${ARTEMIS_PASSWORD:-atelier-local-uniquement}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      artemis:
+        condition: service_healthy
+
+  audit-consumer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: audit-consumer
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-projet}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-atelier}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-atelier-local-uniquement}
+      SPRING_ARTEMIS_BROKER_URL: tcp://artemis:61616
+      SPRING_ARTEMIS_USER: ${ARTEMIS_USER:-atelier}
+      SPRING_ARTEMIS_PASSWORD: ${ARTEMIS_PASSWORD:-atelier-local-uniquement}
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      artemis:
+        condition: service_healthy
 
 volumes:
   postgres_data:

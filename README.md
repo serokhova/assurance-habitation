@@ -56,25 +56,48 @@ flowchart LR
 
 ## 🚀 Getting Started
 
-### Prerequisites
-- Java 25
-- Docker & Docker Compose
-- Maven (or use `./mvnw`)
+You can run the entire system either **100% inside Docker** (no Java or Maven required on host) or in **Hybrid / Local Developer Mode** (fast iteration in IDE).
 
-### 1. Start Infrastructure (PostgreSQL & Artemis)
+---
+
+### Option 1: 🐳 100% Dockerized Stack (Zero Host Prerequisites)
+
+> [!TIP]
+> **Recommended for evaluation, demos, or running on a fresh computer.**
+> You only need **Docker** installed. Java 25, Maven, PostgreSQL, and Artemis are completely containerized.
+
 ```bash
-docker compose up -d
+# Build and launch all 4 services (PostgreSQL, Artemis, assurance-api, audit-consumer)
+docker compose up --build -d
+```
+
+To stop everything:
+```bash
+docker compose down
+```
+
+---
+
+### Option 2: 💻 Local Developer Mode (IntelliJ / Terminal)
+
+> [!NOTE]
+> **Recommended for active feature development and live debugging.**
+> Requires Java 25, Maven, and Docker.
+
+#### 1. Start Infrastructure (PostgreSQL & ActiveMQ Artemis)
+```bash
+docker compose up postgres artemis -d
 ```
 
 > [!NOTE]
-> Database schemas (`assurance`, `messaging`) and initial seed data (standard coverages, sample policyholders, sample contracts) are automatically loaded via scripts in `./postgres/init/`.
+> Database schemas (`assurance`, `messaging`) and initial seed data (standard coverages, sample policyholders, sample contracts) are automatically loaded via scripts in `./postgres/init/` into persistent volume `postgres_data`.
 
-### 2. Run Automated Tests
+#### 2. Run Automated Tests (42 Tests Across All Layers)
 ```bash
 mvn test
 ```
 
-#### 🧪 Test Coverage Across Architectural Layers (42 Tests)
+##### 🧪 Test Coverage Across Architectural Layers
 
 | Architectural Layer | `assurance-api` (Port 8080) | `audit-consumer` (Port 8081) | Focus & Assertions |
 |---|---|---|---|
@@ -83,7 +106,7 @@ mvn test
 | **Repository Layer** | `AccommodationRepositoryTest`, `ContractRepositoryTest`, `ClaimRepositoryTest` | `EventRepositoryTest` | `@DataJpaTest` in-memory H2 tests verifying table mappings, `@Embedded` `Address`, enums, relationship navigation, and custom query methods. |
 | **Messaging Layer** | `JmsEventProducerTest` | `JmsEventConsumerTest` | Unit tests verifying `EventMessage` envelope serialization, JMS listener routing, payload parsing, and error resilience. |
 
-### 3. Launch the Applications
+#### 3. Launch Applications Locally
 Open two terminals:
 
 ```bash
