@@ -175,3 +175,13 @@ To verify that all project ports are free:
 - **Core API Swagger UI**: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
 - **Audit Consumer Swagger UI**: [http://localhost:8081/swagger-ui.html](http://localhost:8081/swagger-ui.html)
 - **Apache Artemis Console**: [http://localhost:8161](http://localhost:8161) (`atelier` / `atelier-local-uniquement`)
+
+### 📮 Collection Postman
+
+Une collection Postman v2.1 complète couvrant les **28 requêtes** des deux microservices est fournie dans le dépôt :
+* **Fichier** : [`postman/assurance-habitation.postman_collection.json`](./postman/assurance-habitation.postman_collection.json)
+* **Import** : Ouvrez Postman > Cliquez sur **Import** > Glissez-déposez le fichier `.json`.
+* **Fonctionnalités incluses** :
+  * Variables d'environnement préconfigurées (`assurance_url: http://localhost:8080`, `audit_url: http://localhost:8081`).
+  * Enchaînement automatique : les requêtes de création `POST` sauvegardent automatiquement les IDs générés (`user_id`, `accommodation_id`, etc.) pour les requêtes suivantes (`GET`, `PUT`, `DELETE`).
+  * Jeux de données réels et prêts à l'emploi.

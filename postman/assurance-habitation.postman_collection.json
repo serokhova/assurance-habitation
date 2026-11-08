@@ -1,0 +1,611 @@
+{
+  "info": {
+    "_postman_id": "a9b8c7d6-e5f4-4a3b-8c2d-1e0f9a8b7c6d",
+    "name": "Assurance Habitation - API Collection",
+    "description": "Complete collection of REST endpoints for the Home Insurance System (assurance-api on port 8080 and audit-consumer on port 8081). Includes automated variable extraction for seamless chaining.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "assurance_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "audit_url",
+      "value": "http://localhost:8081",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "accommodation_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "coverage_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "contract_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "claim_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "event_id",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Policyholders (Users)",
+      "description": "Endpoints for managing insured policyholders (/users).",
+      "item": [
+        {
+          "name": "Create Policyholder (Triggers USER_CREATED JMS Event)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.collectionVariables.set('user_id', json.id);",
+                  "    console.log('Saved user_id:', json.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sophie Martin\",\n  \"email\": \"sophie.martin.\" + Date.now() + \"@example.com\",\n  \"phoneNumber\": \"+33612345678\"\n}"
+            },
+            "url": {
+              "raw": "{{assurance_url}}/users",
+              "host": ["{{assurance_url}}"],
+              "path": ["users"]
+            },
+            "description": "Creates a new policyholder and publishes a USER_CREATED event to Artemis queue user.created.queue."
+          }
+        },
+        {
+          "name": "List All Policyholders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{assurance_url}}/users",
+              "host": ["{{assurance_url}}"],
+              "path": ["users"]
+            }
+          }
+        },
+        {
+          "name": "Get Policyholder by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{assurance_url}}/users/{{user_id}}",
+              "host": ["{{assurance_url}}"],
+              "path": ["users", "{{user_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Policyholder",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sophie Martin-Dubois\",\n  \"email\": \"sophie.updated@example.com\",\n  \"phoneNumber\": \"+33698765432\"\n}"
+            },
+            "url": {
+              "raw": "{{assurance_url}}/users/{{user_id}}",
+              "host": ["{{assurance_url}}"],
+              "path": ["users", "{{user_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Policyholder",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{assurance_url}}/users/{{user_id}}",
+              "host": ["{{assurance_url}}"],
+              "path": ["users", "{{user_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Accommodations (Logements)",
+      "description": "Endpoints for managing insured housing properties (/accommodations).",
+      "item": [
+        {
+          "name": "Create Accommodation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.collectionVariables.set('accommodation_id', json.id);",
+                  "    console.log('Saved accommodation_id:', json.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"street\": \"15 Avenue des Champs-Élysées\",\n  \"city\": \"Paris\",\n  \"country\": \"France\",\n  \"postalCode\": \"75008\",\n  \"type\": \"APARTMENT\",\n  \"surfaceArea\": 85,\n  \"roomCount\": 4,\n  \"userId\": {{user_id}}\n}"
+            },
+            "url": {
+              "raw": "{{assurance_url}}/accommodations",
+              "host": ["{{assurance_url}}"],
+              "path": ["accommodations"]
+            }
+          }
+        },
+        {
+          "name": "List All Accommodations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{assurance_url}}/accommodations",
+              "host": ["{{assurance_url}}"],
+              "path": ["accommodations"]
+            }
+          }
+        },
+        {
+          "name": "Get Accommodation by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{assurance_url}}/accommodations/{{accommodation_id}}",
+              "host": ["{{assurance_url}}"],
+              "path": ["accommodations", "{{accommodation_id}}"]
+            }
+          }
+        },
+        {
+          "name": "List Accommodations by Policyholder",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{assurance_url}}/accommodations/user/{{user_id}}",
+              "host": ["{{assurance_url}}"],
+              "path": ["accommodations", "user", "{{user_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Accommodation",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"street\": \"15 Bis Avenue des Champs-Élysées\",\n  \"city\": \"Paris\",\n  \"country\": \"France\",\n  \"postalCode\": \"75008\",\n  \"type\": \"APARTMENT\",\n  \"surfaceArea\": 90,\n  \"roomCount\": 4,\n  \"userId\": {{user_id}}\n}"
+            },
+            "url": {
+              "raw": "{{assurance_url}}/accommodations/{{accommodation_id}}",
+              "host": ["{{assurance_url}}"],
+              "path": ["accommodations", "{{accommodation_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Accommodation",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{assurance_url}}/accommodations/{{accommodation_id}}",
+              "host": ["{{assurance_url}}"],
+              "path": ["accommodations", "{{accommodation_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Coverages (Garanties)",
+      "description": "Endpoints for insurance coverage catalog (/coverages).",
+      "item": [
+        {
+          "name": "Create Coverage",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.collectionVariables.set('coverage_id', json.id);",
+                  "    console.log('Saved coverage_id:', json.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"JARDIN_PISCINE\",\n  \"description\": \"Garantie dépendances, mobilier extérieur et piscine\",\n  \"basePrice\": 65.00\n}"
+            },
+            "url": {
+              "raw": "{{assurance_url}}/coverages",
+              "host": ["{{assurance_url}}"],
+              "path": ["coverages"]
+            }
+          }
+        },
+        {
+          "name": "List All Coverages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{assurance_url}}/coverages",
+              "host": ["{{assurance_url}}"],
+              "path": ["coverages"]
+            }
+          }
+        },
+        {
+          "name": "Get Coverage by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{assurance_url}}/coverages/{{coverage_id}}",
+              "host": ["{{assurance_url}}"],
+              "path": ["coverages", "{{coverage_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Coverage",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"JARDIN_PISCINE_PLUS\",\n  \"description\": \"Garantie premium aménagements extérieurs, spa et piscine\",\n  \"basePrice\": 75.00\n}"
+            },
+            "url": {
+              "raw": "{{assurance_url}}/coverages/{{coverage_id}}",
+              "host": ["{{assurance_url}}"],
+              "path": ["coverages", "{{coverage_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Coverage",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{assurance_url}}/coverages/{{coverage_id}}",
+              "host": ["{{assurance_url}}"],
+              "path": ["coverages", "{{coverage_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Contracts (Contrats)",
+      "description": "Endpoints for home insurance contracts (/contracts).",
+      "item": [
+        {
+          "name": "Create Contract (Triggers CONTRACT_CREATED JMS Event)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.collectionVariables.set('contract_id', json.id);",
+                  "    console.log('Saved contract_id:', json.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"startDate\": \"2026-01-01\",\n  \"endDate\": \"2027-01-01\",\n  \"formula\": \"STANDARD\",\n  \"accommodationId\": {{accommodation_id}},\n  \"coverageIds\": [1, 2]\n}"
+            },
+            "url": {
+              "raw": "{{assurance_url}}/contracts",
+              "host": ["{{assurance_url}}"],
+              "path": ["contracts"]
+            },
+            "description": "Creates a contract and publishes a CONTRACT_CREATED event to contract.created.queue."
+          }
+        },
+        {
+          "name": "List All Contracts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{assurance_url}}/contracts",
+              "host": ["{{assurance_url}}"],
+              "path": ["contracts"]
+            }
+          }
+        },
+        {
+          "name": "Get Contract by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{assurance_url}}/contracts/{{contract_id}}",
+              "host": ["{{assurance_url}}"],
+              "path": ["contracts", "{{contract_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Contract",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"startDate\": \"2026-01-01\",\n  \"endDate\": \"2027-06-30\",\n  \"formula\": \"PREMIUM\",\n  \"accommodationId\": {{accommodation_id}},\n  \"coverageIds\": [1, 2, 3]\n}"
+            },
+            "url": {
+              "raw": "{{assurance_url}}/contracts/{{contract_id}}",
+              "host": ["{{assurance_url}}"],
+              "path": ["contracts", "{{contract_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Contract",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{assurance_url}}/contracts/{{contract_id}}",
+              "host": ["{{assurance_url}}"],
+              "path": ["contracts", "{{contract_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Claims (Sinistres)",
+      "description": "Endpoints for insurance claim management (/claims).",
+      "item": [
+        {
+          "name": "File a Claim (Triggers CLAIM_CREATED JMS Event)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.collectionVariables.set('claim_id', json.id);",
+                  "    console.log('Saved claim_id:', json.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": {{user_id}},\n  \"contractId\": {{contract_id}},\n  \"coverageId\": 1,\n  \"incidentDate\": \"2026-05-12\",\n  \"description\": \"Infiltration d'eau importante au plafond de la salle de bain suite à un orage.\"\n}"
+            },
+            "url": {
+              "raw": "{{assurance_url}}/claims",
+              "host": ["{{assurance_url}}"],
+              "path": ["claims"]
+            },
+            "description": "Files a new insurance claim and publishes a CLAIM_CREATED event to claim.created.queue."
+          }
+        },
+        {
+          "name": "List All Claims",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{assurance_url}}/claims",
+              "host": ["{{assurance_url}}"],
+              "path": ["claims"]
+            }
+          }
+        },
+        {
+          "name": "Get Claim by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{assurance_url}}/claims/{{claim_id}}",
+              "host": ["{{assurance_url}}"],
+              "path": ["claims", "{{claim_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Claim",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": {{user_id}},\n  \"contractId\": {{contract_id}},\n  \"coverageId\": 1,\n  \"incidentDate\": \"2026-05-12\",\n  \"description\": \"Constat amiable signé avec le voisin du dessus et devis de plomberie transmis.\"\n}"
+            },
+            "url": {
+              "raw": "{{assurance_url}}/claims/{{claim_id}}",
+              "host": ["{{assurance_url}}"],
+              "path": ["claims", "{{claim_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Claim",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{assurance_url}}/claims/{{claim_id}}",
+              "host": ["{{assurance_url}}"],
+              "path": ["claims", "{{claim_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Audit Events (audit-consumer)",
+      "description": "Endpoints on port 8081 for inspecting asynchronously consumed JMS events (/events).",
+      "item": [
+        {
+          "name": "List All Consumed Events (Audit Trail)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var list = pm.response.json();",
+                  "    if (list && list.length > 0) {",
+                  "        pm.collectionVariables.set('event_id', list[0].id);",
+                  "        console.log('Saved latest event_id:', list[0].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{audit_url}}/events",
+              "host": ["{{audit_url}}"],
+              "path": ["events"]
+            },
+            "description": "Returns the complete chronological history of consumed JMS audit events."
+          }
+        },
+        {
+          "name": "Get Audit Event by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{audit_url}}/events/{{event_id}}",
+              "host": ["{{audit_url}}"],
+              "path": ["events", "{{event_id}}"]
+            },
+            "description": "Fetches a specific audit log record including original emission time and reception timestamp."
+          }
+        }
+      ]
+    }
+  ]
+}
